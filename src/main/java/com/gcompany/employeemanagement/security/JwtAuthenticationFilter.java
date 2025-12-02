@@ -14,7 +14,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -28,25 +27,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+
         String hdr = request.getHeader("Authorization");
+
         if (hdr != null && hdr.startsWith("Bearer ")) {
             String token = hdr.substring(7);
             try {
                 Jws<Claims> claimsJws = jwtUtil.parseToken(token);
                 Claims claims = claimsJws.getBody();
-                String username = claims.getSubject();
-                @SuppressWarnings("unchecked")
-                List<String> roles = (List<String>) claims.get("roles");
-                List<SimpleGrantedAuthority> authorities = roles == null ? List.of()
-                        : roles.stream().map(r -> new SimpleGrantedAuthority("ROLE_" + r)).collect(Collectors.toList());
+
+                String email = claims.getSubject();
+
+                // Ambil role tunggal (enum) dari claim
+                String role = claims.get("role", String.class);
+
+                // Konversi ke authority (format: ROLE_ADMIN / ROLE_USER)
+                List<SimpleGrantedAuthority> authorities = role == null
+                        ? List.of()
+                        : List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
                 UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(username, null, authorities);
+                        new UsernamePasswordAuthenticationToken(email, null, authorities);
+
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+
             } catch (Exception ex) {
-                // invalid token -> ignore, downstream security will handle unauthenticated access
+                // Token tidak valid → biarkan request diteruskan tanpa authentication
             }
         }
+
         filterChain.doFilter(request, response);
     }
 }

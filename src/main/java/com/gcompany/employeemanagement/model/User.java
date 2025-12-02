@@ -1,5 +1,6 @@
 package com.gcompany.employeemanagement.model;
 
+import com.gcompany.employeemanagement.enums.Role;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -12,14 +13,11 @@ import java.util.Set;
 public class User {
     @Id @GeneratedValue
     private Long id;
-    private String username;
+    private String email;
     private String password;
-    private boolean enabled = true;
+    private String fullName;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Set<Role> roles = new HashSet<>();
+    @Enumerated(EnumType.STRING)
+    private Role role;
 }
 

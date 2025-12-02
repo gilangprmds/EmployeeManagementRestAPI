@@ -1,0 +1,13 @@
+package com.gcompany.employeemanagement.utils;
+
+import com.gcompany.employeemanagement.dto.resp.AttendanceResponse;
+import com.gcompany.employeemanagement.model.Attendance;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+@Mapper(componentModel = "spring")
+public interface AttendanceMapper {
+
+    @Mapping(source = "user.id", target = "userId")
+    AttendanceResponse toDTO(Attendance attendance);
+}
