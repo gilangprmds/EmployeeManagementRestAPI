@@ -72,4 +72,12 @@ public class AttendanceController {
     public ResponseEntity<?> getTodayStatus() {
         return attendanceService.getTodayStatus();
     }
+
+    /** --------------------------
+     *  GET ALL ATTENDANCE
+     * ------------------------- */
+    @GetMapping
+    public ResponseEntity<?> getAllAttendance() {
+        return attendanceService.getAllAttendance();
+    }
 }

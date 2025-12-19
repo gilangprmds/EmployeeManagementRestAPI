@@ -287,6 +287,32 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     /**
      * --------------------------
+     * GET ALL ATTENDANCE
+     * -------------------------
+     */
+
+    @Override
+    public ResponseEntity<?> getAllAttendance() {
+        Response<Object> response = new Response<>();
+        try {
+            List<Attendance> attendance = attendanceRepo.findAll();
+            List<AttendanceResponse> attendanceResponses = attendance.stream()
+                    .map(attendanceMapper::toDTO).toList();
+            response.setData(attendanceResponses);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
+        }catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
+        }
+    }
+
+    /**
+     * --------------------------
      * GET CURRENT USER FROM JWT
      * -------------------------
      */

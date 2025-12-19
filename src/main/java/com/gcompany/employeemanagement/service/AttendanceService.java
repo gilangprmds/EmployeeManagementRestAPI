@@ -15,4 +15,6 @@ public interface AttendanceService {
     ResponseEntity<?> getHistoryForUser();
 
     ResponseEntity<?> getTodayStatus();
+
+    ResponseEntity<?> getAllAttendance();
 }

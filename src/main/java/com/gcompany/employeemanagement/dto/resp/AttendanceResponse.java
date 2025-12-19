@@ -13,6 +13,8 @@ public class AttendanceResponse {
 
     private Long id;
     private Long userId;
+    private String userFullName;
+    private String userRole;
 
     private LocalDate date;
 

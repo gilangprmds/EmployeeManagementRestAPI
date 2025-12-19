@@ -9,5 +9,7 @@ import org.mapstruct.Mapping;
 public interface AttendanceMapper {
 
     @Mapping(source = "user.id", target = "userId")
+    @Mapping(source = "user.fullName", target = "userFullName")
+    @Mapping(source = "user.role", target = "userRole")
     AttendanceResponse toDTO(Attendance attendance);
 }
