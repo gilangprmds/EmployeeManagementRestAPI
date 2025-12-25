@@ -2,6 +2,7 @@ package com.gcompany.employeemanagement.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -51,8 +52,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
 
-            } catch (Exception ex) {
-                // Token tidak valid → biarkan request diteruskan tanpa authentication
+            } catch (JwtException e) {
+                SecurityContextHolder.clearContext();
+                throw e;
             }
         }
 

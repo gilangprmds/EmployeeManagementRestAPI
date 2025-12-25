@@ -4,11 +4,15 @@ import com.gcompany.employeemanagement.dto.req.AttendanceRequest;
 import com.gcompany.employeemanagement.dto.resp.AttendanceResponse;
 import com.gcompany.employeemanagement.service.AttendanceService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -77,7 +81,21 @@ public class AttendanceController {
      *  GET ALL ATTENDANCE
      * ------------------------- */
     @GetMapping
-    public ResponseEntity<?> getAllAttendance() {
-        return attendanceService.getAllAttendance();
+    public ResponseEntity<?> getAllAttendance(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "6") int size,
+            @RequestParam(defaultValue = "date") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            @RequestParam(required = false) LocalDate date,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate
+    ) {
+
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return attendanceService.getAllAttendance(pageable, date, name, status, role, startDate, endDate);
     }
 }

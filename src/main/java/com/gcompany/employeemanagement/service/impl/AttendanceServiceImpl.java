@@ -8,6 +8,7 @@ import com.gcompany.employeemanagement.dto.resp.AttendanceHistoryResp;
 import com.gcompany.employeemanagement.dto.resp.AttendanceResponse;
 import com.gcompany.employeemanagement.dto.resp.StatusResponse;
 import com.gcompany.employeemanagement.enums.AttendanceStatus;
+import com.gcompany.employeemanagement.enums.Role;
 import com.gcompany.employeemanagement.model.Attendance;
 import com.gcompany.employeemanagement.model.User;
 import com.gcompany.employeemanagement.repository.AttendanceRepository;
@@ -17,6 +18,9 @@ import com.gcompany.employeemanagement.utils.AttendanceMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -290,15 +294,88 @@ public class AttendanceServiceImpl implements AttendanceService {
      * GET ALL ATTENDANCE
      * -------------------------
      */
-
     @Override
-    public ResponseEntity<?> getAllAttendance() {
+    public ResponseEntity<?> getAllAttendance(
+            Pageable pageable,
+            LocalDate date,
+            String name,
+            String status,
+            String role,
+            LocalDate startDate,
+            LocalDate endDate) {
         Response<Object> response = new Response<>();
         try {
-            List<Attendance> attendance = attendanceRepo.findAll();
-            List<AttendanceResponse> attendanceResponses = attendance.stream()
+            Specification<Attendance> spec = Specification.where(null);
+
+            // 1. Filter Rentang Tanggal
+            if (startDate != null) {
+                spec = spec.and((root, query, cb) ->
+                        cb.greaterThanOrEqualTo(root.get("date"), startDate)
+                );
+            }
+
+            if (endDate != null) {
+                spec = spec.and((root, query, cb) ->
+                        cb.lessThanOrEqualTo(root.get("date"), endDate)
+                );
+            }
+
+            if (name != null && !name.isBlank()) {
+                spec = spec.and((root, query, cb) ->
+                        cb.like(cb.lower(root.get("user").get("fullName")), "%" + name.toLowerCase() + "%")
+                );
+            }
+
+            Role role1;
+            if (role != null && !role.isBlank()) {
+                try {
+                    role1 = Role.valueOf(role.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    response.setMessage("Attendance User With Role " + role + " not found");
+                    log.error("Attendance User With Role" + role + " not found");
+                    return ResponseEntity
+                            .status(HttpStatus.NOT_FOUND)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(response);
+                }
+                spec = spec.and((root, query, cb) ->
+                        cb.equal(root.get("user").get("role"),  role1)
+                );
+            }
+
+            AttendanceStatus attendanceStatus;
+            if (status != null && !status.isBlank()) {
+                try {
+                    attendanceStatus = AttendanceStatus.valueOf(status.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    response.setMessage("Attendance With Status " + status + " not found");
+                    log.error("Attendance With Status" + status + " not found");
+                    return ResponseEntity
+                            .status(HttpStatus.NOT_FOUND)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(response);
+                }
+                spec = spec.and((root, query, cb) ->
+                        cb.equal(root.get("status"),  attendanceStatus)
+                );
+            }
+
+            Page<Attendance> attendancesPage = attendanceRepo.findAll(spec, pageable);
+            List<Attendance> attendanceList = attendancesPage.getContent();
+
+            List<AttendanceResponse> attendanceResponses = attendanceList.stream()
                     .map(attendanceMapper::toDTO).toList();
-            response.setData(attendanceResponses);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("attendances", attendanceResponses);
+            result.put("currentPage", attendancesPage.getNumber());
+            result.put("currentItem", attendancesPage.getNumberOfElements());
+            result.put("totalItems", attendancesPage.getTotalElements());
+            result.put("totalPages", attendancesPage.getTotalPages());
+
+            response.setMessage("Attendances retrieved successfully");
+            response.setData(result);
+
             return ResponseEntity
                     .status(HttpStatus.OK)
                     .contentType(MediaType.APPLICATION_JSON)

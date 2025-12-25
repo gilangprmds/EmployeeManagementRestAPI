@@ -2,8 +2,10 @@ package com.gcompany.employeemanagement.service;
 
 import com.gcompany.employeemanagement.dto.req.AttendanceRequest;
 import com.gcompany.employeemanagement.dto.resp.AttendanceResponse;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface AttendanceService {
@@ -16,5 +18,12 @@ public interface AttendanceService {
 
     ResponseEntity<?> getTodayStatus();
 
-    ResponseEntity<?> getAllAttendance();
+    ResponseEntity<?> getAllAttendance(
+            Pageable pageable,
+            LocalDate date,
+            String name,
+            String status,
+            String role,
+            LocalDate startDate,
+            LocalDate endDate);
 }
