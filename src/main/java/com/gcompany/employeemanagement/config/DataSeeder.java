@@ -149,6 +149,7 @@ public class DataSeeder {
             User adminUser = User.builder()
                     .email("admin@hris.com")
                     .password(passwordEncoder.encode("Admin@123"))
+                    .firstName("Admin")
                     .fullName("System Administrator")
                     .status(UserStatus.ACTIVE)
                     .accountNonExpired(true)
