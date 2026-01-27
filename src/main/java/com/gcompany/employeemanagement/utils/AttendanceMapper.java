@@ -10,6 +10,8 @@ public interface AttendanceMapper {
 
     @Mapping(source = "user.id", target = "userId")
     @Mapping(source = "user.fullName", target = "userFullName")
-    @Mapping(source = "user.role", target = "userRole")
+    @Mapping(source = "user.profilePicture", target = "userProfileImageUrl")
+    @Mapping(source = "user.email", target = "userEmail")
+//    @Mapping(source = "user.role", target = "userRole")
     AttendanceResponse toDTO(Attendance attendance);
 }

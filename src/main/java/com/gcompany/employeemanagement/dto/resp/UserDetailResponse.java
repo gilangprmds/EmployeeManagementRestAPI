@@ -8,12 +8,14 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
-public class UserResponse {
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserDetailResponse {
+
     private Long id;
     private String email;
     private String fullName;
@@ -21,7 +23,19 @@ public class UserResponse {
     private String lastName;
     private String phoneNumber;
     private UserStatus status;
+    private String profileImageUrl;
+    private String department;
+
+    private Boolean accountNonExpired;
+    private Boolean accountNonLocked;
+    private Boolean credentialsNonExpired;
+    private Boolean enabled;
+
     private List<String> roles;
+    private List<String> permissions;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Long createdBy;
+    private Long updatedBy;
 }

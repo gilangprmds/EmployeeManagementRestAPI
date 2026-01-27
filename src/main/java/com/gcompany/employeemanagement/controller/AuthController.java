@@ -1,7 +1,7 @@
 package com.gcompany.employeemanagement.controller;
 
 import com.gcompany.employeemanagement.dto.req.LoginRequest;
-import com.gcompany.employeemanagement.dto.resp.UserResponse;
+import com.gcompany.employeemanagement.dto.resp.AuthResponse;
 import com.gcompany.employeemanagement.model.RefreshToken;
 import com.gcompany.employeemanagement.model.User;
 import com.gcompany.employeemanagement.repository.UserRepository;
@@ -10,10 +10,17 @@ import com.gcompany.employeemanagement.service.RefreshTokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.WebUtils;
@@ -21,9 +28,9 @@ import org.springframework.web.util.WebUtils;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
-
+@Slf4j
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
     private final UserRepository userRepo;
@@ -31,15 +38,18 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
     private final long refreshTokenMs;
+    private final AuthenticationManager authenticationManager;
 
     public AuthController(UserRepository userRepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
                           RefreshTokenService refreshTokenService,
-                          @Value("${app.jwt.refresh-expiration-ms}") long refreshTokenMs) {
+                          @Value("${app.jwt.refresh-expiration-ms}") long refreshTokenMs,
+                          AuthenticationManager authenticationManager) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.refreshTokenService = refreshTokenService;
         this.refreshTokenMs = refreshTokenMs;
+        this.authenticationManager = authenticationManager;
     }
 
     @PostMapping("/login")
@@ -48,12 +58,27 @@ public class AuthController {
             @RequestHeader(value = "X-Client", required = false, defaultValue = "web") String clientType,
             HttpServletResponse response) {
 
-        Optional<User> opt = userRepo.findByEmail(req.getEmail());
-        if (opt.isEmpty() || !passwordEncoder.matches(req.getPassword(), opt.get().getPassword())) {
-            return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
+        log.info("Login attempt for user: {}", req.getEmail());
+
+        // Authenticate user
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        req.getEmail(),
+                        req.getPassword()
+                )
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        // Get user details
+        User user = (User) authentication.getPrincipal();
+
+        // Check if user is active
+        if (!user.isEnabled()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(null);
         }
 
-        User user = opt.get();
 
         // generate access token
         String accessToken = jwtUtil.generateAccessToken(user);
@@ -61,21 +86,28 @@ public class AuthController {
         // generate and store refresh token
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
-        Map<String, Object> userMap = Map.of(
-                "email", user.getEmail(),
-                "fullName", user.getFullName(),
-                "role", user.getRole().name()
-        );
+
+        AuthResponse authResponse = AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken.getToken())
+                .tokenType("Bearer")
+                .expiresIn(jwtUtil.extractExpiration(accessToken).getTime())
+                .userId(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .profileImageUrl(user.getProfilePicture())
+                .roles(user.getRoleCodes().stream().collect(Collectors.toList()))
+                .permissions(user.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .filter(auth -> !auth.startsWith("ROLE_"))
+                        .collect(Collectors.toList()))
+                .build();
 
         // ============================
         // MODE 1 — MOBILE (no cookie)
         // ============================
         if (clientType.equalsIgnoreCase("mobile")) {
-            return ResponseEntity.ok(Map.of(
-                    "accessToken", accessToken,
-                    "refreshToken", refreshToken.getToken(),
-                    "user", userMap
-            ));
+            return ResponseEntity.ok(authResponse);
         }
 
         // ==================================
@@ -83,17 +115,15 @@ public class AuthController {
         // ==================================
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken.getToken())
                 .httpOnly(true)
-                .secure(false) // make true in production
+                .secure(true) // make true in production
                 .path("/")
                 .maxAge(refreshTokenMs / 1000)
                 .sameSite("Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        return ResponseEntity.ok(Map.of(
-                "accessToken", accessToken,
-                "user", userMap
-        ));
+        authResponse.setRefreshToken(null);
+        return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/refresh")
@@ -127,7 +157,17 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid refresh token"));
         }
 
+
         RefreshToken rt = opt.get();
+        User user = rt.getUser();
+
+        // Check if user is active
+        if (!user.isEnabled()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(null);
+        }
+
+
         if (rt.getExpiry().isBefore(Instant.now())) {
             refreshTokenService.deleteByToken(rt.getToken());
 
@@ -144,16 +184,26 @@ public class AuthController {
         }
 
         String newAccess = jwtUtil.generateAccessToken(rt.getUser());
-        UserResponse userResponse = UserResponse.builder()
-                .email(rt.getUser().getEmail())
-                .fullName(rt.getUser().getFullName())
-                .role(rt.getUser().getRole().name())
+
+        // Prepare response
+        AuthResponse authResponse = AuthResponse.builder()
+                .accessToken(newAccess)
+                .tokenType("Bearer")
+                .expiresIn(jwtUtil.extractExpiration(newAccess).getTime())
+                .userId(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .profileImageUrl(user.getProfilePicture())
+                .roles(user.getRoleCodes().stream().collect(Collectors.toList()))
+                .permissions(user.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .filter(auth -> !auth.startsWith("ROLE_"))
+                        .collect(Collectors.toList()))
                 .build();
 
-        return ResponseEntity.ok(Map.of(
-                "accessToken", newAccess,
-                "user", userResponse
-        ));
+        log.info("Token refreshed for user: {}", user.getUsername());
+
+        return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/logout")

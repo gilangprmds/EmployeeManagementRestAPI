@@ -1,6 +1,6 @@
-package com.gcompany.employeemanagement.enums;
-
-public enum Role {
-    ADMIN,
-    EMPLOYEE,
-}
+//package com.gcompany.employeemanagement.enums;
+//
+//public enum Role {
+//    ADMIN,
+//    EMPLOYEE,
+//}

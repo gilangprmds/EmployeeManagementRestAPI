@@ -14,7 +14,9 @@ public class AttendanceResponse {
     private Long id;
     private Long userId;
     private String userFullName;
+    private String userEmail;
     private String userRole;
+    private String userProfileImageUrl;
 
     private LocalDate date;
 

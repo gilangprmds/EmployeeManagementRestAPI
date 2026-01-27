@@ -8,7 +8,7 @@ import com.gcompany.employeemanagement.dto.resp.AttendanceHistoryResp;
 import com.gcompany.employeemanagement.dto.resp.AttendanceResponse;
 import com.gcompany.employeemanagement.dto.resp.StatusResponse;
 import com.gcompany.employeemanagement.enums.AttendanceStatus;
-import com.gcompany.employeemanagement.enums.Role;
+//import com.gcompany.employeemanagement.enums.Role;
 import com.gcompany.employeemanagement.model.Attendance;
 import com.gcompany.employeemanagement.model.User;
 import com.gcompany.employeemanagement.repository.AttendanceRepository;
@@ -326,22 +326,22 @@ public class AttendanceServiceImpl implements AttendanceService {
                 );
             }
 
-            Role role1;
-            if (role != null && !role.isBlank()) {
-                try {
-                    role1 = Role.valueOf(role.toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    response.setMessage("Attendance User With Role " + role + " not found");
-                    log.error("Attendance User With Role" + role + " not found");
-                    return ResponseEntity
-                            .status(HttpStatus.NOT_FOUND)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .body(response);
-                }
-                spec = spec.and((root, query, cb) ->
-                        cb.equal(root.get("user").get("role"),  role1)
-                );
-            }
+//            Role role1;
+//            if (role != null && !role.isBlank()) {
+//                try {
+//                    role1 = Role.valueOf(role.toUpperCase());
+//                } catch (IllegalArgumentException e) {
+//                    response.setMessage("Attendance User With Role " + role + " not found");
+//                    log.error("Attendance User With Role" + role + " not found");
+//                    return ResponseEntity
+//                            .status(HttpStatus.NOT_FOUND)
+//                            .contentType(MediaType.APPLICATION_JSON)
+//                            .body(response);
+//                }
+//                spec = spec.and((root, query, cb) ->
+//                        cb.equal(root.get("user").get("role"),  role1)
+//                );
+//            }
 
             AttendanceStatus attendanceStatus;
             if (status != null && !status.isBlank()) {

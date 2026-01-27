@@ -9,7 +9,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173") // or your deployed React URL
+                .allowedOrigins("http://localhost:5173" , "https://gilangprmds-employee-management-fro.vercel.app") // or your deployed React URL
                 .allowedMethods("*")
                 .allowedHeaders("*")
                 .allowCredentials(true);

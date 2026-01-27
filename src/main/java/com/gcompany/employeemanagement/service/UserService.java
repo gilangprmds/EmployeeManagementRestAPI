@@ -3,7 +3,7 @@ package com.gcompany.employeemanagement.service;
 import com.gcompany.employeemanagement.dto.Response;
 import com.gcompany.employeemanagement.dto.req.UserRequest;
 import com.gcompany.employeemanagement.dto.resp.UserResponse;
-import com.gcompany.employeemanagement.enums.Role;
+//import com.gcompany.employeemanagement.enums.Role;
 import com.gcompany.employeemanagement.model.User;
 import com.gcompany.employeemanagement.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +46,7 @@ public class UserService {
             user.setPassword(passwordEncoder.encode(userReq.getPassword()));
             user.setFullName(userReq.getFirstName().concat(" ").concat(userReq.getLastName()));
             user.setEmail(userReq.getEmail());
-            user.setRole(Role.EMPLOYEE);
+//            user.setRole(Role.EMPLOYEE);
             userRepository.save(user);
             response.setMessage("User " + userReq.getEmail() + "  successfully created");
             log.info("User " + userReq.getEmail() + "  successfully created");
@@ -153,22 +153,22 @@ public class UserService {
 //                        cb.like(cb.lower(root.get("role").get("name")), "%" + role.toLowerCase() + "%")
 //                );
 //            }
-            Role role1;
-            if (role != null && !role.isBlank()) {
-                try {
-                    role1 = Role.valueOf(role.toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    response.setMessage("User With Role " + role + " not found");
-                    log.error("User With Role" + role + " not found");
-                    return ResponseEntity
-                            .status(HttpStatus.NOT_FOUND)
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .body(response);
-                }
-                spec = spec.and((root, query, cb) ->
-                        cb.equal(root.get("role"),  role1)
-                );
-            }
+//            Role role1;
+//            if (role != null && !role.isBlank()) {
+//                try {
+//                    role1 = Role.valueOf(role.toUpperCase());
+//                } catch (IllegalArgumentException e) {
+//                    response.setMessage("User With Role " + role + " not found");
+//                    log.error("User With Role" + role + " not found");
+//                    return ResponseEntity
+//                            .status(HttpStatus.NOT_FOUND)
+//                            .contentType(MediaType.APPLICATION_JSON)
+//                            .body(response);
+//                }
+//                spec = spec.and((root, query, cb) ->
+//                        cb.equal(root.get("role"),  role1)
+//                );
+//            }
 
             Page<User> usersPage = userRepository.findAll(spec, pageable);
             List<User> usersList = usersPage.getContent();
@@ -186,7 +186,7 @@ public class UserService {
                             .id(user.getId())
                             .email(user.getEmail())
                             .fullName(user.getFullName())
-                            .role(user.getRole().name())
+//                            .role(user.getRole().name())
                             .build()
                     )
                     .toList();
@@ -194,6 +194,7 @@ public class UserService {
             Map<String, Object> result = new HashMap<>();
             result.put("users", usersRespList);
             result.put("currentPage", usersPage.getNumber());
+            result.put("currentItems", usersPage.getNumberOfElements());
             result.put("totalItems", usersPage.getTotalElements());
             result.put("totalPages", usersPage.getTotalPages());
 
@@ -231,7 +232,7 @@ public class UserService {
                     .id(user.getId())
                     .email(user.getEmail())
                     .fullName(user.getFullName())
-                    .role(user.getRole().name())
+//                    .role(user.getRole().name())
                     .build();
 
             response.setMessage("User " + user.getEmail() + " With ID " + user.getId() + " successfully retrieved");

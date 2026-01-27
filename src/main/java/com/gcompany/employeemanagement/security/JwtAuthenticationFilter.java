@@ -1,63 +1,101 @@
 package com.gcompany.employeemanagement.security;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
 
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    private final JwtUtil jwtUtil;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
-        this.jwtUtil = jwtUtil;
-    }
+    private final JwtUtil jwtService;
+    private final UserDetailsServiceImpl userDetailsService;
+
+    private static final String AUTH_HEADER = "Authorization";
+    private static final String TOKEN_PREFIX = "Bearer ";
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
 
-        String hdr = request.getHeader("Authorization");
+        try {
+            String jwt = extractJwtFromRequest(request);
 
-        if (hdr != null && hdr.startsWith("Bearer ")) {
-            String token = hdr.substring(7);
-            try {
-                Jws<Claims> claimsJws = jwtUtil.parseToken(token);
-                Claims claims = claimsJws.getBody();
+            if (StringUtils.hasText(jwt)) {
+                if (jwtService.validateToken(jwt)) {
+                    String username = jwtService.extractUsername(jwt);
 
-                String email = claims.getSubject();
+                    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // Ambil role tunggal (enum) dari claim
-                String role = claims.get("role", String.class);
+                        if (jwtService.isTokenValid(jwt, (com.gcompany.employeemanagement.model.User) userDetails)) {
+                            UsernamePasswordAuthenticationToken authToken =
+                                    new UsernamePasswordAuthenticationToken(
+                                            userDetails,
+                                            null,
+                                            userDetails.getAuthorities()
+                                    );
 
-                // Konversi ke authority (format: ROLE_ADMIN / ROLE_USER)
-                List<SimpleGrantedAuthority> authorities = role == null
-                        ? List.of()
-                        : List.of(new SimpleGrantedAuthority("ROLE_" + role));
+                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                            SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(email, null, authorities);
-
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-
-            } catch (JwtException e) {
-                SecurityContextHolder.clearContext();
-                throw e;
+                            log.debug("Authenticated user: {} with roles: {}",
+                                    username, userDetails.getAuthorities());
+                        }
+                    }
+                } else {
+                    throw new SecurityExceptions.InvalidJwtTokenException("Invalid JWT token");
+                }
             }
+
+            filterChain.doFilter(request, response);
+
+        } catch (SecurityExceptions.JwtAuthenticationException e) {
+            handleAuthenticationException(response, e);
+        }
+    }
+
+    private String extractJwtFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader(AUTH_HEADER);
+
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(TOKEN_PREFIX)) {
+            return bearerToken.substring(TOKEN_PREFIX.length());
         }
 
-        filterChain.doFilter(request, response);
+        // Also check in query parameter (for WebSocket or special cases)
+        String tokenParam = request.getParameter("token");
+        if (StringUtils.hasText(tokenParam)) {
+            return tokenParam;
+        }
+
+        return null;
+    }
+
+    private void handleAuthenticationException(HttpServletResponse response,
+                                               SecurityExceptions.JwtAuthenticationException e) throws IOException {
+        log.error("Authentication error: {}", e.getMessage());
+
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write(
+                String.format("{\"error\": \"Unauthorized\", \"message\": \"%s\"}", e.getMessage())
+        );
     }
 }

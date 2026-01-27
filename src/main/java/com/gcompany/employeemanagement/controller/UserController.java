@@ -1,7 +1,6 @@
 package com.gcompany.employeemanagement.controller;
 
 import com.gcompany.employeemanagement.dto.req.UserRequest;
-import com.gcompany.employeemanagement.enums.Role;
 import com.gcompany.employeemanagement.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
