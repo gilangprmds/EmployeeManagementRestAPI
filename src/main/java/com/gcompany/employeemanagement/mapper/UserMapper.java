@@ -54,7 +54,9 @@ public class UserMapper {
     public void updateUserFromRequest(User user, UserUpdateRequest request) {
         if (request.getFirstName() != null) {
             user.setFirstName(request.getFirstName());
-            user.setFullName(request.getFirstName().concat(" ").concat(user.getLastName()));
+            if (user.getLastName() != null) {
+                user.setFullName(request.getFirstName().concat(" ").concat(user.getLastName()));
+            }
         }
         if (request.getLastName() != null) {
             user.setLastName(request.getLastName());
