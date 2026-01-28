@@ -118,7 +118,7 @@ public class AuthController {
                 .secure(true) // make true in production
                 .path("/")
                 .maxAge(refreshTokenMs / 1000)
-                .sameSite("Lax")
+                .sameSite("None") // fe dan be beda domain
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
