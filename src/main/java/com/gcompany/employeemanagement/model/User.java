@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Entity
@@ -57,7 +56,7 @@ public class User implements UserDetails {
 
     @ManyToOne
     @JoinColumn(name = "departmens_id")
-    private Departmens departmens;
+    private Department department;
 
     // mappedBy menandakan bahwa field 'user' di kelas Profile adalah pemilik foreign key
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

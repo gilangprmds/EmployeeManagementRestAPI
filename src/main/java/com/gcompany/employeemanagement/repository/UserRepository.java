@@ -20,6 +20,9 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     // Status-based queries (menggunakan enum)
     List<User> findByStatus(UserStatus status);
 
+    Long countByStatus(UserStatus status);
+
+
     // Combined status queries
     @Query("SELECT u FROM User u WHERE u.status IN :statuses")
     List<User> findByStatuses(@Param("statuses") List<UserStatus> statuses);
@@ -47,4 +50,21 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     @Query("SELECT COUNT(u) > 0 FROM User u JOIN u.roles r WHERE u.id = :userId AND r.code = :roleCode")
     boolean userHasRole(@Param("userId") Long userId, @Param("roleCode") String roleCode);
 
+
+//    @Query("SELECT u FROM User u WHERE u.status = 'ACTIVE' " +
+//            "AND (u.position ILIKE '%manager%' " +
+//            "OR u.position ILIKE '%lead%' " +
+//            "OR u.position ILIKE '%head%' " +
+//            "OR EXISTS (SELECT r FROM u.roles r WHERE r.code IN ('MANAGER', 'HR_MANAGER'))) " +
+//            "ORDER BY u.name ASC")
+//    List<User> findPotentialDepartmentManagers();
+
+    // Find users by department
+    List<User> findByDepartmentId(Long departmentId);
+
+//    // Count users by department
+//    long countByDepartmentIdAndIsActiveTrue(Long departmentId);
+//
+//    // Find users without department
+//    List<User> findByDepartmentIsNullAndIsActiveTrue();
 }

@@ -382,6 +382,13 @@ public class UserService2 {
                 .collect(Collectors.toList());
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('HR')")
+    public Long getTotalUsersCount() {
+        log.info("Fetching total users count");
+        return userRepository.count();
+    }
+
+
     // ========== Helper Methods ==========
 
     public User getCurrentUserEntity() {

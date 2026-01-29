@@ -26,4 +26,6 @@ public interface AttendanceService {
             String role,
             LocalDate startDate,
             LocalDate endDate);
+
+    Long getCountAttendanceToday();
 }

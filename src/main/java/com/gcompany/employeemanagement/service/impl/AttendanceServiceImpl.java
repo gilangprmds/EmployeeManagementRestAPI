@@ -388,6 +388,11 @@ public class AttendanceServiceImpl implements AttendanceService {
         }
     }
 
+    public Long getCountAttendanceToday() {
+        LocalDate today = LocalDate.now();
+        return attendanceRepo.countAttendancesByDate(today);
+    }
+
     /**
      * --------------------------
      * GET CURRENT USER FROM JWT

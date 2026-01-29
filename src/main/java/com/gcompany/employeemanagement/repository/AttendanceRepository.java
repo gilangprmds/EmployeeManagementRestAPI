@@ -18,4 +18,6 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long>, J
     Optional<Attendance> findFirstByUser_IdAndDate(Long userId, LocalDate date);
 
     List<Attendance> findByUser_IdOrderByDateDesc(Long userId);
+
+    Long countAttendancesByDate(LocalDate date);
 }
